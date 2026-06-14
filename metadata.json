@@ -1,0 +1,8 @@
+{
+  "name": "MailMind AI",
+  "description": "AI-powered email marketing dashboard for Gmail personal and workspace accounts.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

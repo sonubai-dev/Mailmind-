@@ -1,0 +1,165 @@
+{
+  "entities": {
+    "Template": {
+      "title": "Email Template",
+      "description": "Stored email templates for marketing",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "subject": { "type": "string" },
+        "body": { "type": "string" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "usageCount": { "type": "integer" },
+        "aiGenerated": { "type": "boolean" }
+      },
+      "required": ["userId", "name", "subject", "body", "createdAt"]
+    },
+    "Broadcast": {
+      "title": "Broadcast Campaign",
+      "description": "History of mass email campaigns",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "totalSent": { "type": "integer" },
+        "failedCount": { "type": "integer" },
+        "status": { "type": "string" }
+      },
+      "required": ["userId", "name", "date", "status"]
+    },
+    "AutoReplySettings": {
+      "title": "Auto Reply Settings",
+      "description": "Settings for the Gemini auto-reply engine",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "enabled": { "type": "boolean" },
+        "persona": { "type": "string" },
+        "keywords": { "type": "array", "items": { "type": "string" } },
+        "blocklist": { "type": "array", "items": { "type": "string" } },
+        "delay": { "type": "integer" },
+        "maxPerHour": { "type": "integer" }
+      },
+      "required": ["userId", "enabled"]
+    },
+    "AILog": {
+      "title": "AI Activity Log",
+      "description": "Log of automated actions taken by Gemini",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "recipient": { "type": "string" },
+        "subject": { "type": "string" },
+        "snippet": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["userId", "timestamp", "recipient", "status"]
+    },
+    "Contact": {
+      "title": "Audience Contact",
+      "description": "Information about a subscriber or client",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "company": { "type": "string" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "email"]
+    },
+    "BroadcastDraft": {
+      "title": "Broadcast Draft",
+      "description": "Auto-saved draft of a broadcast message",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "subject": { "type": "string" },
+        "body": { "type": "string" },
+        "csvContent": { "type": "string" },
+        "selectedTag": { "type": "string" },
+        "sourceMode": { "type": "string", "enum": ["csv", "audience"] },
+        "isAbTesting": { "type": "boolean" },
+        "variationB": {
+          "type": "object",
+          "properties": {
+            "subject": { "type": "string" },
+            "body": { "type": "string" }
+          }
+        },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "updatedAt"]
+    },
+    "Automation": {
+      "title": "Automation Rule",
+      "description": "Rules for the 24/7 assistant",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string", "enum": ["welcome", "order", "booking", "custom"] },
+        "trigger": { "type": "string" },
+        "templateId": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "paused"] },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "type", "updatedAt"]
+    },
+    "IntegrationSource": {
+      "title": "Integration Source",
+      "description": "External web/app sources",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "apiKey": { "type": "string" },
+        "platform": { "type": "string" },
+        "status": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/contacts/{contactId}": {
+      "schema": "Contact",
+      "description": "User subscribers list"
+    },
+    "/templates/{templateId}": {
+      "schema": "Template",
+      "description": "User marketing templates"
+    },
+    "/broadcasts/{broadcastId}": {
+      "schema": "Broadcast",
+      "description": "User mass mailing history"
+    },
+    "/settings/{userId}": {
+      "schema": "AutoReplySettings",
+      "description": "User auto-reply engine configuration"
+    },
+    "/logs/{logId}": {
+      "schema": "AILog",
+      "description": "AI action history"
+    },
+    "/broadcast_drafts/{userId}": {
+      "schema": "BroadcastDraft",
+      "description": "User's current broadcast draft"
+    },
+    "/automations/{automationId}": {
+      "schema": "Automation",
+      "description": "Assistant automation rules"
+    },
+    "/integrations/{integrationId}": {
+      "schema": "IntegrationSource",
+      "description": "External connections"
+    }
+  }
+}

@@ -1,0 +1,136 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Entity validation helpers
+    function isValidTemplate(data) {
+      return data.userId == request.auth.uid 
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.subject is string && data.subject.size() <= 200
+        && data.body is string && data.body.size() <= 100000
+        && (data.get('tags', []) is list && data.get('tags', []).size() <= 10);
+    }
+
+    function isValidBroadcast(data) {
+      return data.userId == request.auth.uid 
+        && data.name is string && data.name.size() > 0
+        && data.status in ['pending', 'running', 'complete', 'failed'];
+    }
+
+    function isValidSettings(data) {
+      return data.userId == request.auth.uid 
+        && data.enabled is bool
+        && (data.get('keywords', []) is list && data.get('keywords', []).size() <= 20)
+        && (data.get('blocklist', []) is list && data.get('blocklist', []).size() <= 50);
+    }
+
+    function isValidLog(data) {
+      return data.userId == request.auth.uid 
+        && data.recipient is string && data.recipient.size() > 0
+        && data.status is string;
+    }
+
+    function isValidBroadcastDraft(data) {
+      return data.userId == request.auth.uid
+        && (data.get('subject', '') is string && data.get('subject', '').size() <= 200)
+        && (data.get('body', '') is string && data.get('body', '').size() <= 100000)
+        && (data.get('csvContent', '') is string && data.get('csvContent', '').size() <= 1000000)
+        && (data.get('selectedTag', '') is string && data.get('selectedTag', '').size() <= 100)
+        && (data.get('sourceMode', 'audience') in ['csv', 'audience'])
+        && (data.get('isAbTesting', false) is bool);
+    }
+
+    function isValidContact(data) {
+      return data.userId == request.auth.uid
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.email is string && data.email.size() > 0 && data.email.size() <= 200
+        && (data.get('company', '') is string && data.get('company', '').size() <= 100)
+        && (data.get('tags', []) is list && data.get('tags', []).size() <= 20);
+    }
+
+    function isValidAutomation(data) {
+      return data.userId == request.auth.uid
+        && data.name is string && data.name.size() > 0
+        && data.type in ['welcome', 'order', 'booking', 'custom'];
+    }
+
+    function isValidIntegration(data) {
+      return data.userId == request.auth.uid
+        && data.name is string && data.name.size() > 0;
+    }
+
+    // Match blocks
+    match /contacts/{contactId} {
+      allow create: if isSignedIn() && isValidId(contactId) && isValidContact(incoming());
+      allow get, list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && isValidId(contactId) && isOwner(existing().userId) && isValidContact(incoming())
+        && incoming().userId == existing().userId;
+      allow delete: if isSignedIn() && isValidId(contactId) && isOwner(existing().userId);
+    }
+
+    match /templates/{templateId} {
+      allow create: if isSignedIn() && isValidTemplate(incoming());
+      allow get, list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && isOwner(existing().userId) && isValidTemplate(incoming())
+        && incoming().userId == existing().userId;
+      allow delete: if isSignedIn() && isOwner(existing().userId);
+    }
+
+    match /broadcasts/{broadcastId} {
+      allow create: if isSignedIn() && isValidBroadcast(incoming());
+      allow get, list: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    match /settings/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId) && isValidSettings(incoming());
+    }
+
+    match /logs/{logId} {
+      allow create: if isSignedIn() && isValidLog(incoming());
+      allow get, list: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    match /broadcast_drafts/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId) && isValidBroadcastDraft(incoming());
+    }
+
+    match /automations/{id} {
+      allow create: if isSignedIn() && isValidAutomation(incoming());
+      allow get, list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow update, delete: if isSignedIn() && isOwner(existing().userId);
+    }
+
+    match /integrations/{id} {
+      allow create: if isSignedIn() && isValidIntegration(incoming());
+      allow get, list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow update, delete: if isSignedIn() && isOwner(existing().userId);
+    }
+  }
+}
