@@ -1,7 +1,7 @@
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 import { initializeApp, getApps } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
@@ -23,7 +23,14 @@ async function startServer() {
   app.use(express.json());
 
   // Gemini Setup
-  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+  const ai = new GoogleGenAI({
+    apiKey: process.env.GEMINI_API_KEY,
+    httpOptions: {
+      headers: {
+        'User-Agent': 'aistudio-build'
+      }
+    }
+  });
 
   // API Routes
   app.get("/api/health", (req, res) => {
@@ -116,9 +123,11 @@ async function startServer() {
           Maintain the brand tone. Output strictly the email content.
         `;
 
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-        const aiResponse = await model.generateContent(prompt);
-        const responseText = aiResponse.response.text();
+        const aiResponse = await ai.models.generateContent({
+          model: "gemini-3.5-flash",
+          contents: prompt,
+        });
+        const responseText = aiResponse.text || "";
 
         // 4. Attempt to send via Custom SMTP if configured
         let deliveryStatus = "drafted";
@@ -179,10 +188,13 @@ async function startServer() {
   // Gemini proxy: Generate email content
   app.post("/api/ai/generate", async (req, res) => {
     try {
-      const { prompt, model = "gemini-1.5-flash" } = req.body;
-      const genModel = genAI.getGenerativeModel({ model });
-      const response = await genModel.generateContent(prompt);
-      res.json({ text: response.response.text() });
+      let { prompt, model = "gemini-3.5-flash" } = req.body;
+      if (model === "gemini-1.5-flash") model = "gemini-3.5-flash";
+      const response = await ai.models.generateContent({
+        model,
+        contents: prompt
+      });
+      res.json({ text: response.text || "" });
     } catch (error: any) {
       console.error("Gemini Error:", error);
       res.status(500).json({ error: error.message });
@@ -192,16 +204,17 @@ async function startServer() {
   // Gemini proxy: Structured prompt
   app.post("/api/ai/structured", async (req, res) => {
     try {
-      const { prompt, schema, model = "gemini-1.5-flash" } = req.body;
-      const genModel = genAI.getGenerativeModel({ model });
-      const response = await genModel.generateContent({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: {
+      let { prompt, schema, model = "gemini-3.5-flash" } = req.body;
+      if (model === "gemini-1.5-flash") model = "gemini-3.5-flash";
+      const response = await ai.models.generateContent({
+        model,
+        contents: prompt,
+        config: {
           responseMimeType: "application/json",
           responseSchema: schema
         }
       });
-      res.json({ data: JSON.parse(response.response.text() || "{}") });
+      res.json({ data: JSON.parse(response.text || "{}") });
     } catch (error: any) {
       console.error("Gemini Structured Error:", error);
       res.status(500).json({ error: error.message });
