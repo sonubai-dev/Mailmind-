@@ -12,7 +12,8 @@ import {
   Mail,
   Building,
   UserPlus,
-  Download
+  Download,
+  UploadCloud
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -31,6 +32,7 @@ import { useAuthStore } from '../store/authStore';
 import toast from 'react-hot-toast';
 import { Contact } from '../types';
 import ConfirmationModal from '../components/common/ConfirmationModal';
+import CSVImporterModal from '../components/contacts/CSVImporterModal';
 
 export default function ContactsPage() {
   const { user } = useAuthStore();
@@ -38,6 +40,7 @@ export default function ContactsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [contactToDelete, setContactToDelete] = useState<string | null>(null);
@@ -290,6 +293,13 @@ export default function ContactsPage() {
           >
             <Download size={20} className="text-slate-500" />
             <span>Export Engagement (CSV)</span>
+          </button>
+          <button 
+            onClick={() => setIsImportModalOpen(true)}
+            className="flex items-center gap-2 px-6 py-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-xl border border-indigo-100 transition-all hover:scale-105 active:scale-95"
+          >
+            <UploadCloud size={20} className="text-indigo-600" />
+            <span>Import Contacts (CSV)</span>
           </button>
           <button 
             onClick={() => {
@@ -566,6 +576,14 @@ export default function ContactsPage() {
         onConfirm={handleDelete}
         title="Delete Contact"
         message="Are you sure you want to remove this subscriber from your audience list? This cannot be undone."
+      />
+
+      {/* CSV Contact Bulk Importer Modal */}
+      <CSVImporterModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        userId={user?.uid || ''}
+        existingContacts={contacts}
       />
     </div>
   );
