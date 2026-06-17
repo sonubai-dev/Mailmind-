@@ -30,8 +30,7 @@ if (!getApps().length) {
 const db = getFirestore();
 const app = express();
 
-async function configureServer() {
-  app.use(express.json());
+app.use(express.json());
 
   // Gemini Setup
   const ai = new GoogleGenAI({
@@ -232,33 +231,30 @@ async function configureServer() {
     }
   });
 
-  // Vite middleware for development (only when not deploying under Vercel)
-  if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else if (!process.env.VERCEL) {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
-  }
-}
-
-// Start local listener if not running in a Vercel Serverless environment
+// If we are NOT in a Vercel serverless function environment, start the listener and mount static/dev middleware
 if (process.env.VERCEL !== '1') {
-  configureServer().then(() => {
+  async function startLocalServer() {
+    if (process.env.NODE_ENV !== "production") {
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: "spa",
+      });
+      app.use(vite.middlewares);
+    } else {
+      const distPath = path.join(process.cwd(), 'dist');
+      app.use(express.static(distPath));
+      app.get('*', (req, res) => {
+        res.sendFile(path.join(distPath, 'index.html'));
+      });
+    }
+
     const PORT = 3000;
     app.listen(PORT, "0.0.0.0", () => {
       console.log(`Server running on port ${PORT}`);
     });
-  });
-} else {
-  // If in Vercel, just run configuration (Vercel routes /api under standard handlers)
-  configureServer();
+  }
+
+  startLocalServer();
 }
 
 export default app;
